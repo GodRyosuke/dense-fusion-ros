@@ -1,0 +1,110 @@
+version: '3'
+networks:
+  ros:
+    driver: bridge
+services:
+  ros-master:
+    # build: 
+    #   context: .
+    #   dockerfile: RosMaster.Dockerfile
+    image: ros-noetic-master:wander
+    container_name: ros-master
+    hostname: ros-master
+    # command: 
+    #   - source /opt/ros/$ROS_DISTRO/setup.bash
+      # - roscore
+    volumes:
+      - "/home/$USER/kusumoto/dense-fusion-ros/catkin_ws/:/root/catkin_ws/"
+    working_dir: "/root/catkin_ws"
+    networks:
+      - ros
+    tty: true
+    restart: always
+
+  jkl:
+    image: dense-fusion-ros-run:wander
+    #   context: .
+    #   dockerfile: DenseFusion.Dockerfile
+    hostname: jkl-server
+    container_name: jkl
+    depends_on:
+      - ros-master
+    environment:
+      - "ROS_HOSTNAME=jkl-server"
+      - "ROS_MASTER_URI=http://ros-master:11311"
+      - "ROS_DOMAIN_ID=100"
+      - "DISPLAY=$DISPLAY"
+      - "QT_X11_NO_MITSHM=1"
+    user: "1000:1000"
+    volumes:
+      # - "/home/$USER:/home/$USER"
+      - "/home/$USER/kusumoto/dense-fusion-ros/catkin_ws:/home/$USER/catkin_ws"
+      # - "/home/$USER/kusumoto/dense-fusion-ros/.pyenv:/home/$USER/.pyenv"
+      - "/home/$USER/.ros:/home/$USER/.ros"
+      - "/home/$USER/.rviz:/home/$USER/.rviz"
+      - "/home/$USER/kusumoto/dense-fusion-ros/docker/bash/.bashrc:/home/$USER/.bashrc"
+      - "/etc/group:/etc/group:ro"
+      - "/etc/passwd:/etc/passwd:ro"
+      - "/etc/shadow:/etc/shadow:ro"
+      - "/etc/sudoers.d:/etc/sudoers.d:ro"
+      - "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+    working_dir: "/home/$USER/catkin_ws/"
+    networks:
+      - ros
+    tty: true
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  asdf:
+    image: dense-fusion-ros-run:wander
+    # build: 
+    #   context: .
+    #   dockerfile: DenseFusion.Dockerfile
+    hostname: asdf-server
+    depends_on:
+      - ros-master
+    container_name: asdf
+    environment:
+      - "ROS_HOSTNAME=asdf-server"
+      - "ROS_DOMAIN_ID=100"
+      - "ROS_MASTER_URI=http://ros-master:11311"
+    # command:
+    #   - source /opt/ros/foxy/setup.bash
+    #   - . install/local_setup.bash
+    #   - ros2 run pcl_publisher wander_pcl_sub
+    volumes:
+      - "/home/$USER/kusumoto/dense-fusion-ros/catkin_ws/:/root/catkin_ws/"
+    working_dir: "/root/catkin_ws"
+    networks:
+      - ros
+    tty: true
+    restart: always
+
+  realsense:
+    image: realsense:wander
+    hostname: realsense-server
+    container_name: realsense
+    depends_on:
+      - ros-master
+    environment:
+      - "ROS_HOSTNAME=realsense-server"
+      - "ROS_DOMAIN_ID=100"
+      - "ROS_MASTER_URI=http://ros-master:11311"
+    # command:
+    #   - cd /root/catkin_ws
+    #   - source ./devel/setup.bash
+    #   - roslaunch realsense2_camera rs_camera.launch
+    #   - source /opt/ros/foxy/setup.bash
+    #   - . install/local_setup.bash
+    #   - ros2 run pcl_publisher wander_pcl_sub
+    # volumes:
+    #   - "/home/$USER/kusumoto/dense-fusion-ros/catkin_ws/:/root/catkin_ws/"
+    working_dir: "/root/catkin_ws"
+    networks:
+      - ros
+    tty: true
+    restart: always
